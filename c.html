@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лисий Инглиш — Генератор карточки</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Montserrat:wght@400;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+–bg: #1a1a2e;
+–card-bg: #b07070;
+–text-dark: #111;
+–highlight-color: #e94560;
+}
+
+body {
+min-height: 100vh;
+background: var(–bg);
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 40px 20px 60px;
+font-family: ‘Montserrat’, sans-serif;
+color: #fff;
+}
+
+h1 {
+font-family: ‘Unbounded’, sans-serif;
+font-size: clamp(18px, 4vw, 26px);
+letter-spacing: -1px;
+margin-bottom: 6px;
+background: linear-gradient(90deg, #ff6b6b, #ffd166, #06d6a0);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+font-size: 13px;
+color: rgba(255,255,255,0.4);
+margin-bottom: 40px;
+}
+
+.layout {
+display: flex;
+gap: 50px;
+align-items: flex-start;
+flex-wrap: wrap;
+justify-content: center;
+width: 100%;
+max-width: 900px;
+}
+
+.controls {
+display: flex;
+flex-direction: column;
+gap: 18px;
+width: 280px;
+background: rgba(255,255,255,0.04);
+border: 1px solid rgba(255,255,255,0.08);
+border-radius: 20px;
+padding: 28px 24px;
+}
+
+.field-label {
+font-size: 11px;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+color: rgba(255,255,255,0.45);
+margin-bottom: 6px;
+}
+
+input[type=“text”], textarea {
+width: 100%;
+background: rgba(255,255,255,0.07);
+border: 1px solid rgba(255,255,255,0.12);
+border-radius: 10px;
+color: #fff;
+font-family: ‘Montserrat’, sans-serif;
+font-size: 14px;
+padding: 10px 14px;
+outline: none;
+transition: border-color 0.2s;
+resize: none;
+}
+
+input[type=“text”]:focus, textarea:focus {
+border-color: rgba(255,255,255,0.35);
+}
+
+textarea { height: 80px; }
+
+.hint {
+font-size: 11px;
+color: rgba(255,255,255,0.35);
+margin-top: 7px;
+line-height: 1.6;
+}
+
+.hint strong { color: rgba(255,255,255,0.6); }
+
+.upload-btn {
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 10px;
+background: rgba(255,255,255,0.07);
+border: 1.5px dashed rgba(255,255,255,0.2);
+border-radius: 10px;
+color: rgba(255,255,255,0.55);
+font-family: ‘Montserrat’, sans-serif;
+font-size: 13px;
+padding: 12px;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.upload-btn:hover { border-color: rgba(255,255,255,0.45); color: #fff; }
+#fileInput { display: none; }
+
+.preview-thumb {
+width: 52px; height: 52px; border-radius: 8px;
+object-fit: cover; display: none;
+border: 2px solid rgba(255,255,255,0.2);
+}
+
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+
+.swatch {
+width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+border: 2.5px solid transparent;
+transition: transform 0.15s, border-color 0.15s;
+flex-shrink: 0;
+}
+.swatch:hover { transform: scale(1.2); }
+.swatch.active { border-color: #fff; transform: scale(1.2); }
+
+.swatch-custom {
+position: relative; overflow: hidden;
+background: conic-gradient(red,yellow,lime,cyan,blue,magenta,red);
+}
+.swatch-custom input[type=“color”] {
+opacity: 0; position: absolute; inset: 0;
+width: 100%; height: 100%; cursor: pointer; border: none; padding: 0;
+}
+
+.divider { height: 1px; background: rgba(255,255,255,0.07); }
+
+.btn-download {
+background: linear-gradient(135deg, #e94560, #c93b55);
+border: none; border-radius: 12px; color: #fff;
+font-family: ‘Unbounded’, sans-serif;
+font-size: 12px; letter-spacing: 0.5px;
+padding: 14px 20px; cursor: pointer; width: 100%;
+transition: transform 0.15s, opacity 0.15s;
+}
+.btn-download:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-download:active { transform: translateY(0); }
+
+/* CARD */
+#card-bg-img {
+position: absolute; inset: 0;
+width: 100%; height: 100%;
+object-fit: cover; display: none;
+z-index: 0;
+}
+
+#card-gradient-overlay {
+position: absolute; inset: 0;
+pointer-events: none; display: none;
+z-index: 1;
+}
+
+.card-inner-wrap {
+position: relative; z-index: 2;
+width: 100%; height: 100%;
+display: flex; flex-direction: column; justify-content: space-between;
+}
+.card-wrapper { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+#card {
+width: 480px; height: 480px;
+position: relative; overflow: hidden; flex-shrink: 0;
+transition: background-color 0.5s ease;
+background-color: var(–card-bg);
+display: flex; flex-direction: column; justify-content: space-between;
+}
+
+.card-top {
+display: flex; align-items: center; gap: 12px;
+padding: 22px 22px 0;
+}
+
+.card-cover {
+width: 68px; height: 68px; border-radius: 4px;
+object-fit: cover; flex-shrink: 0;
+}
+
+.card-cover-placeholder {
+width: 68px; height: 68px; border-radius: 4px;
+background: rgba(0,0,0,0.2); flex-shrink: 0;
+}
+
+.card-meta { display: flex; flex-direction: column; gap: 4px; }
+
+.card-song {
+font-family: ‘Unbounded’, sans-serif; font-size: 20px; font-weight: 700;
+color: var(–text-dark); line-height: 1.1;
+}
+
+.card-artist {
+font-size: 14px; font-weight: 600;
+color: var(–text-dark); opacity: 0.75;
+}
+
+.card-lyrics {
+font-family: ‘Unbounded’, sans-serif;
+font-size: 56px; font-weight: 900;
+color: var(–text-dark); line-height: 1.05;
+padding: 0 22px; flex: 1;
+display: flex; align-items: center;
+word-break: break-word;
+}
+
+.card-lyrics-inner { display: block; word-break: break-word; }
+.card-lyrics .hl { color: var(–highlight-color); }
+
+.card-footer {
+display: flex; align-items: center; justify-content: center;
+padding: 0 22px 22px;
+}
+
+.card-explanation {
+font-family: ‘Montserrat’, sans-serif;
+font-size: 15px;
+font-weight: 600;
+color: var(–highlight-color);
+padding: 0 22px 14px;
+line-height: 1.4;
+word-break: break-word;
+}
+
+.fox-logo {
+font-family: ‘Unbounded’, sans-serif; font-size: 13px; font-weight: 700;
+color: var(–text-dark); opacity: 0.8;
+}
+
+.note {
+font-size: 11px; color: rgba(255,255,255,0.3);
+text-align: center; max-width: 340px;
+}
+</style>
+
+</head>
+<body>
+
+<h1>Лисий Инглиш</h1>
+<p class="subtitle">Генератор музыкальных карточек</p>
+
+<div class="layout">
+  <div class="controls">
+
+```
+<div>
+  <div class="field-label">Обложка альбома</div>
+  <label class="upload-btn" for="fileInput">
+    <img id="previewThumb" class="preview-thumb" src="" alt="cover">
+    <span id="uploadLabel">📁 Загрузить обложку</span>
+  </label>
+  <input type="file" id="fileInput" accept="image/*">
+</div>
+
+<div>
+  <div class="field-label">Название песни</div>
+  <input type="text" id="songName" value="" placeholder="Название песни">
+</div>
+
+<div>
+  <div class="field-label">Исполнитель</div>
+  <input type="text" id="artistName" value="" placeholder="Исполнитель">
+</div>
+
+<div>
+  <div class="field-label">Текст / цитата</div>
+  <textarea id="lyricsText"></textarea>
+  <div class="hint">Оберни слова в <strong>*звёздочки*</strong> — они выделятся контрастным цветом</div>
+</div>
+
+<div>
+  <div class="field-label">Объяснение на русском</div>
+  <textarea id="explanationText" placeholder="Перевод или пояснение..."></textarea>
+</div>
+
+<div>
+  <div class="field-label">Цвет выделения</div>
+  <div class="swatches" id="swatches">
+    <div class="swatch active" data-color="#e94560" style="background:#e94560"></div>
+    <div class="swatch" data-color="#ffd166" style="background:#ffd166"></div>
+    <div class="swatch" data-color="#06d6a0" style="background:#06d6a0"></div>
+    <div class="swatch" data-color="#74b9ff" style="background:#74b9ff"></div>
+    <div class="swatch" data-color="#ffffff" style="background:#fff"></div>
+    <div class="swatch" data-color="#111111" style="background:#111;border-color:rgba(255,255,255,0.15)"></div>
+    <label class="swatch swatch-custom" title="Свой цвет">
+      <input type="color" id="customColor" value="#e94560">
+    </label>
+  </div>
+</div>
+
+<div class="divider"></div>
+<button class="btn-download" id="downloadBtn">⬇ Скачать PNG</button>
+```
+
+  </div>
+
+  <div class="card-wrapper">
+    <div id="card">
+      <img id="card-bg-img" src="" alt="">
+      <div id="card-gradient-overlay"></div>
+      <div class="card-inner-wrap">
+      <div class="card-top">
+        <img id="cardCover" class="card-cover" src="" alt="cover" style="display:none">
+        <div id="cardCoverPlaceholder" class="card-cover-placeholder"></div>
+        <div class="card-meta">
+          <div class="card-song" id="cardSong"></div>
+          <div class="card-artist" id="cardArtist"></div>
+        </div>
+      </div>
+      <div class="card-lyrics" id="cardLyrics"></div>
+      <div class="card-explanation" id="cardExplanation" style="display:none"></div>
+      <div class="card-footer">
+        <div class="fox-logo">лисий инглиш</div>
+      </div>
+      </div><!-- /card-inner-wrap -->
+    </div>
+    <p class="note">Цвет фона подбирается автоматически по обложке</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+  const card = document.getElementById('card');
+
+  function parseLyrics(text) {
+    if (!text) return '';
+    return text.replace(/\*([^*]+)\*/g, '<span class="hl">$1</span>');
+  }
+
+  function renderLyrics() {
+    const raw = document.getElementById('lyricsText').value || '…';
+    document.getElementById('cardLyrics').innerHTML = '<span class="card-lyrics-inner">' + parseLyrics(raw) + '</span>';
+    const plain = raw.replace(/\*([^*]+)\*/g, '$1');
+    const len = plain.length;
+    const el = document.getElementById('cardLyrics');
+    if (len < 30) el.style.fontSize = '56px';
+    else if (len < 60) el.style.fontSize = '44px';
+    else if (len < 100) el.style.fontSize = '34px';
+    else el.style.fontSize = '26px';
+  }
+
+  document.getElementById('songName').addEventListener('input', e =>
+    document.getElementById('cardSong').textContent = e.target.value);
+  document.getElementById('artistName').addEventListener('input', e =>
+    document.getElementById('cardArtist').textContent = e.target.value);
+  document.getElementById('lyricsText').addEventListener('input', renderLyrics);
+
+  document.getElementById('explanationText').addEventListener('input', e => {
+    const el = document.getElementById('cardExplanation');
+    const val = e.target.value.trim();
+    el.textContent = val;
+    el.style.display = val ? 'block' : 'none';
+  });
+
+  // Swatches
+  document.getElementById('swatches').addEventListener('click', e => {
+    const sw = e.target.closest('.swatch[data-color]');
+    if (!sw) return;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    card.style.setProperty('--highlight-color', sw.dataset.color);
+  });
+
+  document.getElementById('customColor').addEventListener('input', e => {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    e.target.closest('label').classList.add('active');
+    card.style.setProperty('--highlight-color', e.target.value);
+  });
+
+  // File upload + color extraction
+  document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const thumb = document.getElementById('previewThumb');
+    thumb.src = url; thumb.style.display = 'block';
+    document.getElementById('uploadLabel').textContent = '✓ Обложка загружена';
+    const cover = document.getElementById('cardCover');
+    cover.src = url; cover.style.display = 'block';
+    document.getElementById('cardCoverPlaceholder').style.display = 'none';
+    extractColor(url);
+  });
+
+  function extractColor(src) {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 50; canvas.height = 50;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, 50, 50);
+      const data = ctx.getImageData(0, 0, 50, 50).data;
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const br = (data[i] + data[i+1] + data[i+2]) / 3;
+        if (br > 20 && br < 240) { r += data[i]; g += data[i+1]; b += data[i+2]; count++; }
+      }
+      if (!count) return;
+      r = Math.round(r/count); g = Math.round(g/count); b = Math.round(b/count);
+
+      // Step 1: convert to HSL to work cleanly
+      const rn = r/255, gn = g/255, bn = b/255;
+      const max = Math.max(rn,gn,bn), min = Math.min(rn,gn,bn), d = max-min;
+      let h = 0, s = 0, l = (max+min)/2;
+      if (d > 0) {
+        s = d / (1 - Math.abs(2*l - 1));
+        if (max===rn) h = ((gn-bn)/d + 6) % 6;
+        else if (max===gn) h = (bn-rn)/d + 2;
+        else h = (rn-gn)/d + 4;
+        h = h/6;
+      }
+
+      // Step 2: bg — keep hue, reduce saturation to ~25%, darken to L 12–18%
+      const bgS = Math.min(s, 0.28);
+      const bgL = 0.12 + s * 0.06; // slightly more colorful if source is vivid
+      const [br2,bg2,bb2] = hslToRgb(h, bgS, bgL);
+      const bgHex = toHex(br2,bg2,bb2);
+      card.style.backgroundColor = bgHex;
+
+      // Step 3: accent — vivid version of the same hue for highlight color
+      // Pick a light, saturated tone — like a pastel but punchy
+      const acS = Math.min(1, s * 1.3 + 0.35);
+      const acL = 0.62 + (1 - s) * 0.1; // brighter for desaturated images
+      const [ar,ag,ab] = hslToRgb(h, acS, acL);
+      const accentHex = toHex(ar,ag,ab);
+
+      // Update highlight color swatch and card variable
+      card.style.setProperty('--highlight-color', accentHex);
+      // Sync the custom color picker value
+      const picker = document.getElementById('customColor');
+      if (picker) picker.value = accentHex;
+      // Deactivate preset swatches, activate custom
+      document.querySelectorAll('#swatches .swatch').forEach(s => s.classList.remove('active'));
+      if (picker) picker.closest('label').classList.add('active');
+
+      const lum = 0.299*br2 + 0.587*bg2 + 0.114*bb2;
+      card.style.setProperty('--text-dark', lum > 100 ? '#111' : '#f0f0f0');
+    };
+    img.src = src;
+  }
+
+  function hslToRgb(h, s, l) {
+    const c = (1 - Math.abs(2*l-1)) * s;
+    const x = c * (1 - Math.abs((h*6)%2 - 1));
+    const m = l - c/2;
+    let r=0,g=0,b=0;
+    if      (h < 1/6) { r=c; g=x; b=0; }
+    else if (h < 2/6) { r=x; g=c; b=0; }
+    else if (h < 3/6) { r=0; g=c; b=x; }
+    else if (h < 4/6) { r=0; g=x; b=c; }
+    else if (h < 5/6) { r=x; g=0; b=c; }
+    else              { r=c; g=0; b=x; }
+    return [Math.round((r+m)*255), Math.round((g+m)*255), Math.round((b+m)*255)];
+  }
+
+  function toHex(r,g,b) {
+    return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');
+  }
+
+  // BG Image
+
+
+  // Download
+  document.getElementById('downloadBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('downloadBtn');
+    btn.textContent = '⏳ Генерирую…'; btn.disabled = true;
+    try {
+      const SCALE = 2;
+      const bgColor = card.style.backgroundColor || '#b07070';
+      const canvas = await html2canvas(card, {
+        scale: SCALE,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: bgColor,
+        logging: false
+      });
+      const link = document.createElement('a');
+      link.download = 'lisiy-inglish-card.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch(err) { alert('Ошибка: ' + err.message); }
+    btn.textContent = '⬇ Скачать PNG'; btn.disabled = false;
+  });
+
+  renderLyrics();
+</script>
+
+</body>
+</html>
